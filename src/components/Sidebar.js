@@ -87,7 +87,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    borderRight: '2px solid transparent',
+    
     background: 'none',
     border: 'none',
     borderRight: '2px solid transparent',
