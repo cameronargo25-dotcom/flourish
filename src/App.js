@@ -4,6 +4,7 @@ import { useData } from './hooks/useData'
 import { getAccent } from './lib/utils'
 import Auth from './pages/Auth'
 import Sidebar from './components/Sidebar'
+import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
 import Goals from './pages/Goals'
 import Pipeline from './pages/Pipeline'
@@ -16,10 +17,21 @@ const PAGE_TITLES = {
   samples: 'Samples',
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return isMobile
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [view, setView] = useState('home')
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -52,16 +64,24 @@ export default function App() {
   }
 
   return (
-    <div style={styles.app}>
-      <Sidebar view={view} onNav={setView} accentColor={accent.color} />
+    <div style={{
+      ...styles.app,
+      flexDirection: isMobile ? 'column' : 'row',
+    }}>
+      {!isMobile && (
+        <Sidebar view={view} onNav={setView} accentColor={accent.color} />
+      )}
 
       <div style={styles.main}>
         <div style={styles.topbar}>
           <div style={styles.topbarTitle}>{PAGE_TITLES[view]}</div>
-          <button style={{ ...styles.signOutBtn }} onClick={handleSignOut}>Sign out</button>
+          <button style={styles.signOutBtn} onClick={handleSignOut}>Sign out</button>
         </div>
 
-        <div style={styles.content}>
+        <div style={{
+          ...styles.content,
+          paddingBottom: isMobile ? 64 : 0,
+        }}>
           {view === 'home' && (
             <Home
               profile={profile}
@@ -72,6 +92,7 @@ export default function App() {
               onSaveProfile={saveProfile}
               onSaveTopVideo={saveTopVideo}
               onDeleteTopVideo={deleteTopVideo}
+              isMobile={isMobile}
             />
           )}
           {view === 'goals' && (
@@ -79,6 +100,7 @@ export default function App() {
               goals={goals}
               onSave={saveGoal}
               onDelete={deleteGoal}
+              isMobile={isMobile}
             />
           )}
           {view === 'pipeline' && (
@@ -87,6 +109,7 @@ export default function App() {
               onSave={saveVideo}
               onDelete={deleteVideo}
               onMove={moveVideo}
+              isMobile={isMobile}
             />
           )}
           {view === 'samples' && (
@@ -94,10 +117,15 @@ export default function App() {
               samples={samples}
               onSave={saveSample}
               onDelete={deleteSample}
+              isMobile={isMobile}
             />
           )}
         </div>
       </div>
+
+      {isMobile && (
+        <BottomNav view={view} onNav={setView} accentColor={accent.color} />
+      )}
     </div>
   )
 }
