@@ -47,7 +47,7 @@ export default function App() {
   const {
     profile, videos, samples, goals, topVideos, loading,
     saveProfile,
-    saveVideo, deleteVideo, moveVideo,
+    saveVideo, deleteVideo, moveVideo, unarchiveVideo,
     saveSample, deleteSample,
     saveGoal, deleteGoal,
     saveTopVideo, deleteTopVideo,
@@ -109,6 +109,7 @@ export default function App() {
               onSave={saveVideo}
               onDelete={deleteVideo}
               onMove={moveVideo}
+              onUnarchive={unarchiveVideo}
               isMobile={isMobile}
             />
           )}
