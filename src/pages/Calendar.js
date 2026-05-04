@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { TYPE_STYLES, deadlineColor } from '../lib/utils'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -7,17 +6,31 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
 }
-
 function getFirstDayOfMonth(year, month) {
   return new Date(year, month, 1).getDay()
 }
-
 function toDateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+// New color system:
+// Green  = Posted (stage 5)
+// Red    = Not posted, deadline <= 3 days
+// Purple = Not posted, deadline > 3 days
+function getVideoColor(video, today) {
+  if (video.stage === 5) {
+    return { bg: '#E1F5EE', color: '#0F6E56', dot: '#1D9E75', label: 'Posted' }
+  }
+  const diff = Math.round((new Date(video.deadline + 'T00:00:00') - today) / 86400000)
+  if (diff <= 3) {
+    return { bg: '#FAECE7', color: '#993C1D', dot: '#D85A30', label: 'Urgent' }
+  }
+  return { bg: '#EEEDFE', color: '#534AB7', dot: '#7F77DD', label: 'Upcoming' }
+}
+
 export default function Calendar({ videos, onEditVideo, isMobile }) {
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState(null)
@@ -27,7 +40,6 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
     else setMonth(m => m - 1)
     setSelectedDay(null)
   }
-
   function nextMonth() {
     if (month === 11) { setMonth(0); setYear(y => y + 1) }
     else setMonth(m => m + 1)
@@ -38,15 +50,14 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
   const firstDay = getFirstDayOfMonth(year, month)
   const todayKey = toDateKey(today.getFullYear(), today.getMonth(), today.getDate())
 
-  // Map videos to their deadline date keys
+  // Map videos to their deadline date — include posted videos
   const videosByDate = {}
   videos.filter(v => v.deadline && !v.archived).forEach(v => {
-    const key = v.deadline // already in YYYY-MM-DD format
+    const key = v.deadline
     if (!videosByDate[key]) videosByDate[key] = []
     videosByDate[key].push(v)
   })
 
-  // Build calendar grid — 6 rows x 7 cols
   const cells = []
   for (let i = 0; i < firstDay; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
@@ -66,15 +77,17 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
 
       {/* Legend */}
       <div style={styles.legend}>
-        {Object.entries(TYPE_STYLES).map(([key, val]) => (
-          <div key={key} style={styles.legendItem}>
-            <div style={{ ...styles.legendDot, background: val.color }} />
-            <span>{val.label}</span>
-          </div>
-        ))}
+        <div style={styles.legendItem}>
+          <div style={{ ...styles.legendDot, background: '#1D9E75' }} />
+          <span>Posted ✓</span>
+        </div>
         <div style={styles.legendItem}>
           <div style={{ ...styles.legendDot, background: '#D85A30' }} />
           <span>Urgent (≤3 days)</span>
+        </div>
+        <div style={styles.legendItem}>
+          <div style={{ ...styles.legendDot, background: '#7F77DD' }} />
+          <span>Upcoming</span>
         </div>
       </div>
 
@@ -102,43 +115,33 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
                 ...styles.cell,
                 ...(isToday ? styles.cellToday : {}),
                 ...(isSelected ? styles.cellSelected : {}),
-                ...(dayVideos.length > 0 ? styles.cellHasEvents : {}),
               }}
               onClick={() => setSelectedDay(isSelected ? null : day)}
             >
-              <div style={{
-                ...styles.dayNum,
-                ...(isToday ? styles.dayNumToday : {}),
-              }}>{day}</div>
+              <div style={{ ...styles.dayNum, ...(isToday ? styles.dayNumToday : {}) }}>
+                {day}
+              </div>
 
-              {/* Event dots / pills */}
               <div style={styles.events}>
                 {isMobile ? (
-                  // Mobile: show dots only
                   <div style={styles.dotRow}>
                     {dayVideos.slice(0, 3).map(v => {
-                      const col = deadlineColor(v.deadline)
-                      const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-                      return (
-                        <div key={v.id} style={{ ...styles.dot, background: col !== '#888' ? col : typeStyle.color }} />
-                      )
+                      const col = getVideoColor(v, today)
+                      return <div key={v.id} style={{ ...styles.dot, background: col.dot }} />
                     })}
                     {dayVideos.length > 3 && <div style={styles.moreText}>+{dayVideos.length - 3}</div>}
                   </div>
                 ) : (
-                  // Desktop: show pills with title
                   dayVideos.slice(0, 2).map(v => {
-                    const dlColor = deadlineColor(v.deadline)
-                    const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-                    const bg = dlColor !== '#888' ? (dlColor === '#993C1D' ? '#FAECE7' : '#FAEEDA') : typeStyle.bg
-                    const color = dlColor !== '#888' ? dlColor : typeStyle.color
+                    const col = getVideoColor(v, today)
+                    const isPosted = v.stage === 5
                     return (
                       <div
                         key={v.id}
-                        style={{ ...styles.pill, background: bg, color }}
+                        style={{ ...styles.pill, background: col.bg, color: col.color }}
                         onClick={e => { e.stopPropagation(); onEditVideo(v) }}
                       >
-                        {v.title.length > 16 ? v.title.slice(0, 16) + '…' : v.title}
+                        {isPosted ? '✓ ' : ''}{v.title.length > 14 ? v.title.slice(0, 14) + '…' : v.title}
                       </div>
                     )
                   })
@@ -152,7 +155,7 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
         })}
       </div>
 
-      {/* Selected day detail panel */}
+      {/* Selected day detail */}
       {selectedDay && (
         <div style={styles.detailPanel}>
           <div style={styles.detailHeader}>
@@ -160,55 +163,54 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
             {selectedVideos.length === 0 && <span style={styles.noEvents}> — no deadlines</span>}
           </div>
           {selectedVideos.map(v => {
-            const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-            const dlColor = deadlineColor(v.deadline)
+            const col = getVideoColor(v, today)
+            const isPosted = v.stage === 5
             return (
               <div key={v.id} style={styles.detailRow} onClick={() => onEditVideo(v)}>
                 <div style={styles.detailLeft}>
-                  <div style={styles.detailTitle}>{v.title}</div>
+                  <div style={styles.detailTitle}>
+                    {isPosted && <span style={{ color: '#1D9E75', marginRight: 5 }}>✓</span>}
+                    {v.title}
+                  </div>
                   <div style={styles.detailMeta}>
-                    <span style={{ ...styles.detailTag, background: typeStyle.bg, color: typeStyle.color }}>
-                      {typeStyle.label}
-                    </span>
                     {v.platforms && v.platforms.length > 0 && (
                       <span style={styles.detailPlatforms}>{v.platforms.join(', ')}</span>
                     )}
                   </div>
                 </div>
-                <div style={{ ...styles.detailDeadline, color: dlColor }}>
-                  {dlColor === '#993C1D' ? '🔴 Urgent' : dlColor === '#854F0B' ? '🟡 Soon' : 'Deadline'}
-                </div>
+                <span style={{ ...styles.statusPill, background: col.bg, color: col.color }}>
+                  {col.label}
+                </span>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Upcoming deadlines summary */}
+      {/* Upcoming deadlines */}
       <div style={styles.upcomingSection}>
         <div style={styles.upcomingTitle}>Upcoming deadlines</div>
         {(() => {
           const upcoming = videos
-            .filter(v => v.deadline && !v.archived)
+            .filter(v => v.deadline && !v.archived && v.stage !== 5)
             .map(v => ({ ...v, _diff: Math.round((new Date(v.deadline + 'T00:00:00') - today) / 86400000) }))
             .filter(v => v._diff >= 0 && v._diff <= 14)
             .sort((a, b) => a._diff - b._diff)
 
-          if (upcoming.length === 0) return <div style={styles.noUpcoming}>No deadlines in the next 14 days.</div>
+          if (upcoming.length === 0) return <div style={styles.noUpcoming}>No upcoming deadlines in the next 14 days.</div>
 
           return upcoming.map(v => {
-            const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-            const dlColor = deadlineColor(v.deadline)
+            const col = getVideoColor(v, today)
             const diffLabel = v._diff === 0 ? 'Today' : v._diff === 1 ? 'Tomorrow' : `In ${v._diff} days`
             return (
               <div key={v.id} style={styles.upcomingRow} onClick={() => onEditVideo(v)}>
                 <div style={styles.upcomingLeft}>
                   <div style={styles.upcomingVideoTitle}>{v.title}</div>
-                  <span style={{ ...styles.detailTag, background: typeStyle.bg, color: typeStyle.color }}>
-                    {typeStyle.label}
-                  </span>
+                  {v.platforms && v.platforms.length > 0 && (
+                    <span style={styles.detailPlatforms}>{v.platforms.join(', ')}</span>
+                  )}
                 </div>
-                <div style={{ ...styles.upcomingDiff, color: dlColor, fontWeight: v._diff <= 3 ? '500' : '400' }}>
+                <div style={{ ...styles.upcomingDiff, color: col.color, fontWeight: v._diff <= 3 ? '600' : '400' }}>
                   {diffLabel}
                 </div>
               </div>
@@ -223,9 +225,9 @@ export default function Calendar({ videos, onEditVideo, isMobile }) {
 const styles = {
   page: { padding: 14, maxWidth: 900 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  navBtn: { width: 36, height: 36, borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444' },
+  navBtn: { width: 36, height: 36, borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.15)', background: '#fff', fontSize: 20, cursor: 'pointer', color: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   monthTitle: { fontSize: 18, fontWeight: '500' },
-  legend: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12 },
+  legend: { display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 },
   legendItem: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#888' },
   legendDot: { width: 8, height: 8, borderRadius: '50%' },
   dayHeaders: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', marginBottom: 4 },
@@ -235,8 +237,7 @@ const styles = {
   emptyCell: { minHeight: 80, borderRadius: 8 },
   cellToday: { border: '1.5px solid #7F77DD' },
   cellSelected: { background: '#F5F4FF', border: '1.5px solid #7F77DD' },
-  cellHasEvents: { cursor: 'pointer' },
-  dayNum: { fontSize: 12, fontWeight: '400', color: '#888', marginBottom: 4 },
+  dayNum: { fontSize: 12, color: '#888', marginBottom: 4 },
   dayNumToday: { color: '#7F77DD', fontWeight: '600' },
   events: { display: 'flex', flexDirection: 'column', gap: 2 },
   dotRow: { display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 2 },
@@ -248,16 +249,15 @@ const styles = {
   noEvents: { fontWeight: '400', color: '#aaa' },
   detailRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer' },
   detailLeft: { flex: 1, minWidth: 0 },
-  detailTitle: { fontSize: 13, fontWeight: '500', marginBottom: 4 },
-  detailMeta: { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' },
-  detailTag: { fontSize: 10, padding: '2px 7px', borderRadius: 10, fontWeight: '500' },
+  detailTitle: { fontSize: 13, fontWeight: '500', marginBottom: 3 },
+  detailMeta: { display: 'flex', gap: 6, alignItems: 'center' },
   detailPlatforms: { fontSize: 11, color: '#aaa' },
-  detailDeadline: { fontSize: 11, fontWeight: '500', flexShrink: 0, marginLeft: 10 },
+  statusPill: { fontSize: 10, padding: '3px 9px', borderRadius: 10, fontWeight: '500', flexShrink: 0, marginLeft: 10 },
   upcomingSection: { background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 12, padding: '13px 15px' },
   upcomingTitle: { fontSize: 12, fontWeight: '500', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 },
   noUpcoming: { fontSize: 13, color: '#aaa' },
   upcomingRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)', cursor: 'pointer' },
-  upcomingLeft: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 },
-  upcomingVideoTitle: { fontSize: 13, fontWeight: '500' },
+  upcomingLeft: { flex: 1, minWidth: 0 },
+  upcomingVideoTitle: { fontSize: 13, fontWeight: '500', marginBottom: 2 },
   upcomingDiff: { fontSize: 12, flexShrink: 0, marginLeft: 10 },
 }
