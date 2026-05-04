@@ -12,13 +12,16 @@ const NAV = [
     icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor" opacity=".7"/><rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor" opacity=".7"/><rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor" opacity=".4"/><rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor" opacity=".4"/></svg>
   },
   {
+    id: 'calendar', label: 'Calendar',
+    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><path d="M1 5h12" stroke="currentColor" strokeWidth="1.2"/><path d="M5 2v3M9 2v3" stroke="currentColor" strokeWidth="1.2"/></svg>
+  },
+  {
     id: 'samples', label: 'Samples',
     icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="1" width="8" height="5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="1" y="8" width="4" height="5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="9" y="8" width="4" height="5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/><path d="M7 6v2M5 8h4" stroke="currentColor" strokeWidth="1.2"/></svg>
   },
 ]
 
 const COMING_SOON = [
-  { id: 'calendar', label: 'Calendar' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'deals', label: 'Brand deals' },
 ]
@@ -66,19 +69,10 @@ const styles = {
     position: 'sticky',
     top: 0,
   },
-  logo: {
-    padding: '14px 14px 12px',
-    borderBottom: '0.5px solid rgba(0,0,0,0.08)',
-  },
+  logo: { padding: '14px 14px 12px', borderBottom: '0.5px solid rgba(0,0,0,0.08)' },
   logoName: { fontSize: 15, fontWeight: '500' },
   logoSub: { fontSize: 10, color: '#aaa', marginTop: 1 },
-  section: {
-    fontSize: 10,
-    color: '#aaa',
-    padding: '12px 14px 4px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
+  section: { fontSize: 10, color: '#aaa', padding: '12px 14px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' },
   navItem: {
     padding: '7px 14px',
     fontSize: 13,
@@ -94,16 +88,7 @@ const styles = {
     textAlign: 'left',
     transition: 'background 0.1s',
   },
-  navActive: {
-    background: '#f5f5f5',
-    color: '#1a1a1a',
-    fontWeight: '500',
-  },
-  navDim: {
-    padding: '7px 14px',
-    fontSize: 13,
-    color: '#ccc',
-    cursor: 'default',
-  },
+  navActive: { background: '#f5f5f5', color: '#1a1a1a', fontWeight: '500' },
+  navDim: { padding: '7px 14px', fontSize: 13, color: '#ccc', cursor: 'default' },
   icon: { display: 'flex', alignItems: 'center', flexShrink: 0 },
 }
