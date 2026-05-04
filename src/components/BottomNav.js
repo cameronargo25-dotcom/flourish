@@ -9,16 +9,6 @@ const NAV = [
     )
   },
   {
-    id: 'goals', label: 'Goals',
-    icon: (active) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
-        <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.5"/>
-        <circle cx="12" cy="12" r="2" fill="currentColor"/>
-      </svg>
-    )
-  },
-  {
     id: 'pipeline', label: 'Pipeline',
     icon: (active) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -26,6 +16,29 @@ const NAV = [
         <rect x="13" y="2" width="9" height="9" rx="2" fill="currentColor" opacity={active ? 1 : 0.35}/>
         <rect x="2" y="13" width="9" height="9" rx="2" fill="currentColor" opacity={active ? 1 : 0.25}/>
         <rect x="13" y="13" width="9" height="9" rx="2" fill="currentColor" opacity={active ? 1 : 0.15}/>
+      </svg>
+    )
+  },
+  {
+    id: 'calendar', label: 'Calendar',
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="3" width="20" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M2 8h20" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="6" y="12" width="3" height="3" rx="0.5" fill="currentColor" opacity={active ? 1 : 0.5}/>
+        <rect x="10.5" y="12" width="3" height="3" rx="0.5" fill="currentColor" opacity={active ? 1 : 0.5}/>
+        <rect x="15" y="12" width="3" height="3" rx="0.5" fill="currentColor" opacity={active ? 1 : 0.5}/>
+      </svg>
+    )
+  },
+  {
+    id: 'goals', label: 'Goals',
+    icon: (active) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
+        <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.5"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
       </svg>
     )
   },
@@ -48,19 +61,11 @@ export default function BottomNav({ view, onNav, accentColor }) {
       {NAV.map(n => {
         const active = view === n.id
         return (
-          <button
-            key={n.id}
-            style={styles.item}
-            onClick={() => onNav(n.id)}
-          >
+          <button key={n.id} style={styles.item} onClick={() => onNav(n.id)}>
             <div style={{ color: active ? accentColor : '#bbb', marginBottom: 3 }}>
               {n.icon(active)}
             </div>
-            <span style={{
-              fontSize: 10,
-              color: active ? accentColor : '#bbb',
-              fontWeight: active ? '500' : '400',
-            }}>
+            <span style={{ fontSize: 10, color: active ? accentColor : '#bbb', fontWeight: active ? '500' : '400' }}>
               {n.label}
             </span>
           </button>

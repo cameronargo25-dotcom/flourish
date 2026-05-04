@@ -9,11 +9,13 @@ import Home from './pages/Home'
 import Goals from './pages/Goals'
 import Pipeline from './pages/Pipeline'
 import Samples from './pages/Samples'
+import Calendar from './pages/Calendar'
 
 const PAGE_TITLES = {
   home: 'Home',
   goals: 'Goals',
   pipeline: 'Pipeline',
+  calendar: 'Calendar',
   samples: 'Samples',
 }
 
@@ -21,7 +23,8 @@ function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handler)
+    window.addEventListener('resize', handler
+    )
     return () => window.removeEventListener('resize', handler)
   }, [])
   return isMobile
@@ -59,15 +62,17 @@ export default function App() {
 
   const accent = getAccent(profile?.accent_color)
 
+  // Shared handler for opening a video from calendar
+  async function handleEditVideoFromCalendar(video) {
+    setView('pipeline')
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut()
   }
 
   return (
-    <div style={{
-      ...styles.app,
-      flexDirection: isMobile ? 'column' : 'row',
-    }}>
+    <div style={{ ...styles.app, flexDirection: isMobile ? 'column' : 'row' }}>
       {!isMobile && (
         <Sidebar view={view} onNav={setView} accentColor={accent.color} />
       )}
@@ -78,10 +83,7 @@ export default function App() {
           <button style={styles.signOutBtn} onClick={handleSignOut}>Sign out</button>
         </div>
 
-        <div style={{
-          ...styles.content,
-          paddingBottom: isMobile ? 64 : 0,
-        }}>
+        <div style={{ ...styles.content, paddingBottom: isMobile ? 64 : 0 }}>
           {view === 'home' && (
             <Home
               profile={profile}
@@ -110,6 +112,13 @@ export default function App() {
               onDelete={deleteVideo}
               onMove={moveVideo}
               onUnarchive={unarchiveVideo}
+              isMobile={isMobile}
+            />
+          )}
+          {view === 'calendar' && (
+            <Calendar
+              videos={videos}
+              onEditVideo={handleEditVideoFromCalendar}
               isMobile={isMobile}
             />
           )}
@@ -167,10 +176,7 @@ const styles = {
     color: '#666',
     cursor: 'pointer',
   },
-  content: {
-    flex: 1,
-    overflowY: 'auto',
-  },
+  content: { flex: 1, overflowY: 'auto' },
   center: {
     display: 'flex',
     alignItems: 'center',

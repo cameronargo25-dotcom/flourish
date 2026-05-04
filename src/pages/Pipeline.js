@@ -37,50 +37,40 @@ function PlatformSelector({ selected = [], otherText = '', onChange, onOtherChan
           const isSelected = selected.includes(p.id)
           const colors = PLATFORM_COLORS[p.id]
           return (
-            <button
-              key={p.id}
-              type="button"
+            <button key={p.id} type="button"
               style={{
-                fontSize: 13,
-                padding: '6px 13px',
-                borderRadius: 10,
-                border: '0.5px solid',
-                cursor: 'pointer',
+                fontSize: 13, padding: '6px 13px', borderRadius: 10, border: '0.5px solid', cursor: 'pointer',
                 background: isSelected ? colors.bg : 'transparent',
                 color: isSelected ? colors.color : '#aaa',
                 borderColor: isSelected ? colors.color : 'rgba(0,0,0,0.15)',
                 fontWeight: isSelected ? '500' : '400',
               }}
               onClick={() => {
-                const next = isSelected
-                  ? selected.filter(s => s !== p.id)
-                  : [...selected, p.id]
+                const next = isSelected ? selected.filter(s => s !== p.id) : [...selected, p.id]
                 onChange(next)
               }}
-            >
-              {p.label}
-            </button>
+            >{p.label}</button>
           )
         })}
       </div>
       {selected.includes('other') && (
-        <input
-          style={{ ...inputStyle, marginTop: 8 }}
-          placeholder="Specify platform..."
-          value={otherText}
-          onChange={e => onOtherChange(e.target.value)}
-        />
+        <input style={{ ...inputStyle, marginTop: 8 }} placeholder="Specify platform..." value={otherText} onChange={e => onOtherChange(e.target.value)} />
       )}
     </div>
   )
 }
 
-export default function Pipeline({ videos, onSave, onDelete, onMove, isMobile }) {
+export default function Pipeline({ videos, onSave, onDelete, onMove, onUnarchive, isMobile }) {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({})
   const [dragOver, setDragOver] = useState(null)
   const [collapsedStages, setCollapsedStages] = useState({})
+  const [showArchive, setShowArchive] = useState(false)
   const dragId = useRef(null)
+
+  // Split active and archived
+  const activeVideos = videos.filter(v => !v.archived)
+  const archivedVideos = videos.filter(v => v.archived)
 
   function openNew(stage = 0) {
     setForm({ title: '', type: 'shop', stage, deadline: '', affiliate_link: '', commission: '', caption: '', hashtags: '', notes: '', platforms: [], other_platform: '' })
@@ -94,10 +84,7 @@ export default function Pipeline({ videos, onSave, onDelete, onMove, isMobile })
     closeModal()
   }
 
-  function toggleStage(si) {
-    setCollapsedStages(prev => ({ ...prev, [si]: !prev[si] }))
-  }
-
+  function toggleStage(si) { setCollapsedStages(prev => ({ ...prev, [si]: !prev[si] })) }
   function onDragStart(e, id) { dragId.current = id; e.dataTransfer.effectAllowed = 'move' }
   function onDragOver(e, stage) { e.preventDefault(); setDragOver(stage) }
   function onDrop(e, stage) {
@@ -106,65 +93,6 @@ export default function Pipeline({ videos, onSave, onDelete, onMove, isMobile })
     dragId.current = null; setDragOver(null)
   }
 
-  // Mobile: vertical accordion layout
-  if (isMobile) {
-    return (
-      <div style={{ padding: 12 }}>
-        <button style={mStyles.addBtn} onClick={() => openNew()}>+ New video</button>
-        {STAGES.map((stageName, si) => {
-          const stageVids = videos.filter(v => v.stage === si)
-          const isCollapsed = collapsedStages[si]
-          return (
-            <div key={si} style={mStyles.stageBlock}>
-              <div style={mStyles.stageHeader} onClick={() => toggleStage(si)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={mStyles.stageTitle}>{stageName}</span>
-                  <span style={mStyles.stageCnt}>{stageVids.length}</span>
-                </div>
-                <span style={{ color: '#aaa', fontSize: 16 }}>{isCollapsed ? '›' : '⌄'}</span>
-              </div>
-              {!isCollapsed && (
-                <div style={mStyles.stageCards}>
-                  {stageVids.map(v => {
-                    const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-                    const dlLabel = deadlineLabel(v.deadline)
-                    const dlColor = deadlineColor(v.deadline)
-                    const platforms = v.platforms || []
-                    return (
-                      <div key={v.id} style={mStyles.card} onClick={() => openEdit(v)}>
-                        <div style={mStyles.cardTitle}>{v.title}</div>
-                        <div style={mStyles.cardMeta}>
-                          <span style={{ ...mStyles.tag, background: typeStyle.bg, color: typeStyle.color }}>{typeStyle.label}</span>
-                          {dlLabel && <span style={{ fontSize: 12, color: dlColor, fontWeight: '500' }}>{dlLabel}</span>}
-                        </div>
-                        {platforms.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-                            {platforms.map(pid => {
-                              const col = PLATFORM_COLORS[pid] || PLATFORM_COLORS.other
-                              return <span key={pid} style={{ ...mStyles.platformPill, background: col.bg, color: col.color }}>{platformLabel(pid, v.other_platform)}</span>
-                            })}
-                          </div>
-                        )}
-                        <div style={mStyles.moveRow}>
-                          {si > 0 && <button style={mStyles.moveBtn} onClick={e => { e.stopPropagation(); onMove(v.id, si - 1) }}>← Back</button>}
-                          {si < STAGES.length - 1 && <button style={{ ...mStyles.moveBtn, ...mStyles.moveBtnPrimary }} onClick={e => { e.stopPropagation(); onMove(v.id, si + 1) }}>Next →</button>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <button style={mStyles.addStageBtn} onClick={() => openNew(si)}>+ Add to {stageName}</button>
-                </div>
-              )}
-            </div>
-          )
-        })}
-
-        {editing !== null && renderModal()}
-      </div>
-    )
-  }
-
-  // Desktop: horizontal kanban
   function renderModal() {
     return (
       <Modal title={editing.id ? 'Edit video' : 'New video'} onClose={closeModal} onSave={handleSave}>
@@ -218,51 +146,167 @@ export default function Pipeline({ videos, onSave, onDelete, onMove, isMobile })
     )
   }
 
-  return (
-    <div style={styles.page}>
-      <div style={styles.board}>
-        {STAGES.map((stageName, si) => {
-          const stageVids = videos.filter(v => v.stage === si)
+  // Archive view
+  function renderArchive() {
+    return (
+      <div>
+        <div style={styles.archiveHeader}>
+          <button style={styles.backBtn} onClick={() => setShowArchive(false)}>← Back to pipeline</button>
+          <div style={styles.archiveTitle}>Archive</div>
+          <div style={styles.archiveSub}>{archivedVideos.length} video{archivedVideos.length !== 1 ? 's' : ''} — posted &amp; auto-archived after 30 days</div>
+        </div>
+        {archivedVideos.length === 0 && (
+          <div style={styles.emptyArchive}>No archived videos yet. Posted videos automatically move here after 30 days.</div>
+        )}
+        {archivedVideos.map(v => {
+          const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
+          const platforms = v.platforms || []
           return (
-            <div
-              key={si}
-              style={{ ...styles.col, ...(dragOver === si ? styles.colOver : {}) }}
-              onDragOver={e => onDragOver(e, si)}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={e => onDrop(e, si)}
-            >
-              <div style={styles.colHeader}>
-                <span style={styles.colTitle}>{stageName}</span>
-                <span style={styles.colCount}>{stageVids.length}</span>
+            <div key={v.id} style={styles.archiveRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={styles.archiveVideoTitle}>{v.title}</div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                  <span style={{ ...styles.tag, background: typeStyle.bg, color: typeStyle.color }}>{typeStyle.label}</span>
+                  {platforms.map(pid => {
+                    const col = PLATFORM_COLORS[pid] || PLATFORM_COLORS.other
+                    return <span key={pid} style={{ ...styles.tag, background: col.bg, color: col.color }}>{platformLabel(pid, v.other_platform)}</span>
+                  })}
+                  <span style={styles.archiveDate}>
+                    Archived {new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
               </div>
-              {stageVids.map(v => {
-                const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
-                const dlLabel = deadlineLabel(v.deadline)
-                const dlColor = deadlineColor(v.deadline)
-                const platforms = v.platforms || []
-                return (
-                  <div key={v.id} style={styles.card} draggable onDragStart={e => onDragStart(e, v.id)} onClick={() => openEdit(v)}>
-                    <div style={styles.cardTitle}>{v.title}</div>
-                    <div style={styles.cardMeta}>
-                      <span style={{ ...styles.tag, background: typeStyle.bg, color: typeStyle.color }}>{typeStyle.label}</span>
-                      {dlLabel && <span style={{ fontSize: 11, color: dlColor, fontWeight: dlColor === '#993C1D' ? '500' : '400' }}>{dlLabel}</span>}
-                    </div>
-                    {platforms.length > 0 && (
-                      <div style={styles.platformRow}>
-                        {platforms.map(pid => {
-                          const col = PLATFORM_COLORS[pid] || PLATFORM_COLORS.other
-                          return <span key={pid} style={{ ...styles.platformPill, background: col.bg, color: col.color }}>{platformLabel(pid, v.other_platform)}</span>
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-              <div style={styles.addCard} onClick={() => openNew(si)}>+ Add</div>
+              <button style={styles.restoreBtn} onClick={() => onUnarchive(v.id)}>Restore</button>
             </div>
           )
         })}
       </div>
+    )
+  }
+
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <div style={{ padding: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button style={mStyles.addBtn} onClick={() => openNew()}>+ New video</button>
+          {archivedVideos.length > 0 && (
+            <button style={mStyles.archiveBtn} onClick={() => setShowArchive(!showArchive)}>
+              {showArchive ? 'Pipeline' : `Archive (${archivedVideos.length})`}
+            </button>
+          )}
+        </div>
+
+        {showArchive ? renderArchive() : (
+          STAGES.map((stageName, si) => {
+            const stageVids = activeVideos.filter(v => v.stage === si)
+            const isCollapsed = collapsedStages[si]
+            return (
+              <div key={si} style={mStyles.stageBlock}>
+                <div style={mStyles.stageHeader} onClick={() => toggleStage(si)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={mStyles.stageTitle}>{stageName}</span>
+                    <span style={mStyles.stageCnt}>{stageVids.length}</span>
+                  </div>
+                  <span style={{ color: '#aaa', fontSize: 16 }}>{isCollapsed ? '›' : '⌄'}</span>
+                </div>
+                {!isCollapsed && (
+                  <div style={mStyles.stageCards}>
+                    {stageVids.map(v => {
+                      const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
+                      const dlLabel = deadlineLabel(v.deadline)
+                      const dlColor = deadlineColor(v.deadline)
+                      const platforms = v.platforms || []
+                      return (
+                        <div key={v.id} style={mStyles.card} onClick={() => openEdit(v)}>
+                          <div style={mStyles.cardTitle}>{v.title}</div>
+                          <div style={mStyles.cardMeta}>
+                            <span style={{ ...mStyles.tag, background: typeStyle.bg, color: typeStyle.color }}>{typeStyle.label}</span>
+                            {dlLabel && <span style={{ fontSize: 12, color: dlColor, fontWeight: '500' }}>{dlLabel}</span>}
+                          </div>
+                          {platforms.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                              {platforms.map(pid => {
+                                const col = PLATFORM_COLORS[pid] || PLATFORM_COLORS.other
+                                return <span key={pid} style={{ ...mStyles.platformPill, background: col.bg, color: col.color }}>{platformLabel(pid, v.other_platform)}</span>
+                              })}
+                            </div>
+                          )}
+                          <div style={mStyles.moveRow}>
+                            {si > 0 && <button style={mStyles.moveBtn} onClick={e => { e.stopPropagation(); onMove(v.id, si - 1) }}>← Back</button>}
+                            {si < STAGES.length - 1 && <button style={{ ...mStyles.moveBtn, ...mStyles.moveBtnPrimary }} onClick={e => { e.stopPropagation(); onMove(v.id, si + 1) }}>Next →</button>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <button style={mStyles.addStageBtn} onClick={() => openNew(si)}>+ Add to {stageName}</button>
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+        {editing !== null && renderModal()}
+      </div>
+    )
+  }
+
+  // Desktop layout
+  return (
+    <div style={styles.page}>
+      <div style={styles.topRow}>
+        <button
+          style={{ ...styles.archiveToggle, ...(showArchive ? styles.archiveToggleActive : {}) }}
+          onClick={() => setShowArchive(!showArchive)}
+        >
+          {showArchive ? '← Back to pipeline' : `Archive (${archivedVideos.length})`}
+        </button>
+      </div>
+
+      {showArchive ? renderArchive() : (
+        <div style={styles.board}>
+          {STAGES.map((stageName, si) => {
+            const stageVids = activeVideos.filter(v => v.stage === si)
+            return (
+              <div key={si}
+                style={{ ...styles.col, ...(dragOver === si ? styles.colOver : {}) }}
+                onDragOver={e => onDragOver(e, si)}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={e => onDrop(e, si)}
+              >
+                <div style={styles.colHeader}>
+                  <span style={styles.colTitle}>{stageName}</span>
+                  <span style={styles.colCount}>{stageVids.length}</span>
+                </div>
+                {stageVids.map(v => {
+                  const typeStyle = TYPE_STYLES[v.type] || TYPE_STYLES.organic
+                  const dlLabel = deadlineLabel(v.deadline)
+                  const dlColor = deadlineColor(v.deadline)
+                  const platforms = v.platforms || []
+                  return (
+                    <div key={v.id} style={styles.card} draggable onDragStart={e => onDragStart(e, v.id)} onClick={() => openEdit(v)}>
+                      <div style={styles.cardTitle}>{v.title}</div>
+                      <div style={styles.cardMeta}>
+                        <span style={{ ...styles.tag, background: typeStyle.bg, color: typeStyle.color }}>{typeStyle.label}</span>
+                        {dlLabel && <span style={{ fontSize: 11, color: dlColor, fontWeight: dlColor === '#993C1D' ? '500' : '400' }}>{dlLabel}</span>}
+                      </div>
+                      {platforms.length > 0 && (
+                        <div style={styles.platformRow}>
+                          {platforms.map(pid => {
+                            const col = PLATFORM_COLORS[pid] || PLATFORM_COLORS.other
+                            return <span key={pid} style={{ ...styles.platformPill, background: col.bg, color: col.color }}>{platformLabel(pid, v.other_platform)}</span>
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                <div style={styles.addCard} onClick={() => openNew(si)}>+ Add</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
       {editing !== null && renderModal()}
     </div>
   )
@@ -270,6 +314,9 @@ export default function Pipeline({ videos, onSave, onDelete, onMove, isMobile })
 
 const styles = {
   page: { padding: 14, overflowX: 'auto' },
+  topRow: { display: 'flex', justifyContent: 'flex-end', marginBottom: 12 },
+  archiveToggle: { fontSize: 12, padding: '5px 12px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.2)', background: 'none', color: '#666', cursor: 'pointer' },
+  archiveToggleActive: { background: '#f8f7f5', fontWeight: '500', color: '#1a1a1a' },
   board: { display: 'flex', gap: 10, minWidth: 'max-content', paddingBottom: 8 },
   col: { width: 178, background: '#f8f7f5', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.08)', padding: 10, display: 'flex', flexDirection: 'column', gap: 7, minHeight: 200, transition: 'background 0.15s' },
   colOver: { background: '#EEEDFE' },
@@ -284,10 +331,20 @@ const styles = {
   platformPill: { fontSize: 10, padding: '1px 6px', borderRadius: 8, fontWeight: '500' },
   addCard: { border: '0.5px dashed rgba(0,0,0,0.2)', borderRadius: 8, padding: '7px', textAlign: 'center', cursor: 'pointer', color: '#aaa', fontSize: 12 },
   deleteBtn: { marginTop: 8, fontSize: 12, color: '#B91C1C', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' },
+  archiveHeader: { marginBottom: 16 },
+  backBtn: { fontSize: 12, color: '#7F77DD', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', display: 'block' },
+  archiveTitle: { fontSize: 18, fontWeight: '500', marginBottom: 4 },
+  archiveSub: { fontSize: 13, color: '#aaa' },
+  emptyArchive: { fontSize: 13, color: '#aaa', padding: '40px 0', textAlign: 'center' },
+  archiveRow: { background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 },
+  archiveVideoTitle: { fontSize: 14, fontWeight: '500' },
+  archiveDate: { fontSize: 11, color: '#aaa' },
+  restoreBtn: { fontSize: 12, padding: '5px 12px', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.2)', background: 'none', cursor: 'pointer', color: '#444', flexShrink: 0 },
 }
 
 const mStyles = {
-  addBtn: { width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#7F77DD', color: '#fff', fontSize: 15, fontWeight: '500', cursor: 'pointer', marginBottom: 12 },
+  addBtn: { flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: '#7F77DD', color: '#fff', fontSize: 15, fontWeight: '500', cursor: 'pointer' },
+  archiveBtn: { padding: '12px 16px', borderRadius: 10, border: '0.5px solid rgba(0,0,0,0.2)', background: 'none', fontSize: 13, cursor: 'pointer', color: '#666', whiteSpace: 'nowrap' },
   stageBlock: { background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.1)', marginBottom: 8, overflow: 'hidden' },
   stageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 14px', cursor: 'pointer', background: '#fafaf9' },
   stageTitle: { fontSize: 14, fontWeight: '500', color: '#333' },
