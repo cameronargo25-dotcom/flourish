@@ -23,8 +23,7 @@ function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handler
-    )
+    window.addEventListener('resize', handler)
     return () => window.removeEventListener('resize', handler)
   }, [])
   return isMobile
@@ -49,7 +48,7 @@ export default function App() {
 
   const {
     profile, videos, samples, goals, topVideos, loading,
-    saveProfile,
+    saveProfile, uploadAvatar, uploadBanner,
     saveVideo, deleteVideo, moveVideo, unarchiveVideo,
     saveSample, deleteSample,
     saveGoal, deleteGoal,
@@ -61,11 +60,6 @@ export default function App() {
   if (loading) return <div style={styles.center}>Loading your workspace...</div>
 
   const accent = getAccent(profile?.accent_color)
-
-  // Shared handler for opening a video from calendar
-  async function handleEditVideoFromCalendar(video) {
-    setView('pipeline')
-  }
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -92,18 +86,15 @@ export default function App() {
               samples={samples}
               topVideos={topVideos}
               onSaveProfile={saveProfile}
+              onUploadAvatar={uploadAvatar}
+              onUploadBanner={uploadBanner}
               onSaveTopVideo={saveTopVideo}
               onDeleteTopVideo={deleteTopVideo}
               isMobile={isMobile}
             />
           )}
           {view === 'goals' && (
-            <Goals
-              goals={goals}
-              onSave={saveGoal}
-              onDelete={deleteGoal}
-              isMobile={isMobile}
-            />
+            <Goals goals={goals} onSave={saveGoal} onDelete={deleteGoal} isMobile={isMobile} />
           )}
           {view === 'pipeline' && (
             <Pipeline
@@ -116,19 +107,10 @@ export default function App() {
             />
           )}
           {view === 'calendar' && (
-            <Calendar
-              videos={videos}
-              onEditVideo={handleEditVideoFromCalendar}
-              isMobile={isMobile}
-            />
+            <Calendar videos={videos} onEditVideo={() => setView('pipeline')} isMobile={isMobile} />
           )}
           {view === 'samples' && (
-            <Samples
-              samples={samples}
-              onSave={saveSample}
-              onDelete={deleteSample}
-              isMobile={isMobile}
-            />
+            <Samples samples={samples} onSave={saveSample} onDelete={deleteSample} isMobile={isMobile} />
           )}
         </div>
       </div>
@@ -149,13 +131,7 @@ const styles = {
     fontSize: 14,
     color: '#1a1a1a',
   },
-  main: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    minWidth: 0,
-    overflow: 'hidden',
-  },
+  main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' },
   topbar: {
     background: '#fff',
     borderBottom: '0.5px solid rgba(0,0,0,0.1)',
@@ -168,22 +144,13 @@ const styles = {
   },
   topbarTitle: { fontSize: 15, fontWeight: '500' },
   signOutBtn: {
-    fontSize: 12,
-    padding: '5px 12px',
-    borderRadius: 8,
-    border: '0.5px solid rgba(0,0,0,0.2)',
-    background: 'none',
-    color: '#666',
-    cursor: 'pointer',
+    fontSize: 12, padding: '5px 12px', borderRadius: 8,
+    border: '0.5px solid rgba(0,0,0,0.2)', background: 'none', color: '#666', cursor: 'pointer',
   },
   content: { flex: 1, overflowY: 'auto' },
   center: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    fontSize: 14,
-    color: '#888',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    height: '100vh', fontSize: 14, color: '#888',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
 }
