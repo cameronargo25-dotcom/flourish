@@ -21,7 +21,6 @@ export function useData(userId) {
     ])
     if (p.data) setProfile(p.data)
     if (v.data) {
-      // Auto-archive posted videos older than 30 days
       const now = new Date()
       const toArchive = v.data.filter(video => {
         if (video.stage !== 5 || video.archived) return false
@@ -29,13 +28,11 @@ export function useData(userId) {
         const daysSince = (now - created) / (1000 * 60 * 60 * 24)
         return daysSince > 30
       })
-      // Fire archive updates in background
       if (toArchive.length > 0) {
         toArchive.forEach(video => {
           supabase.from('videos').update({ archived: true }).eq('id', video.id)
         })
       }
-      // Set videos with auto-archive applied locally
       setVideos(v.data.map(video => {
         if (toArchive.find(a => a.id === video.id)) return { ...video, archived: true }
         return video
@@ -55,6 +52,34 @@ export function useData(userId) {
       .from('profiles').update(updates).eq('id', userId).select().single()
     if (!error && data) setProfile(data)
     return { error }
+  }
+
+  // --- AVATAR UPLOAD ---
+  async function uploadAvatar(file) {
+    const ext = file.name.split('.').pop()
+    const path = `${userId}/avatar.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true })
+    if (uploadError) return { error: uploadError }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    const url = data.publicUrl + '?t=' + Date.now()
+    const { error } = await saveProfile({ avatar_url: url })
+    return { error, url }
+  }
+
+  // --- BANNER UPLOAD ---
+  async function uploadBanner(file) {
+    const ext = file.name.split('.').pop()
+    const path = `${userId}/banner.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('banners')
+      .upload(path, file, { upsert: true })
+    if (uploadError) return { error: uploadError }
+    const { data } = supabase.storage.from('banners').getPublicUrl(path)
+    const url = data.publicUrl + '?t=' + Date.now()
+    const { error } = await saveProfile({ banner_url: url })
+    return { error, url }
   }
 
   // --- VIDEOS ---
@@ -162,6 +187,8 @@ export function useData(userId) {
   return {
     profile, videos, samples, goals, topVideos, loading,
     saveProfile,
+    uploadAvatar,
+    uploadBanner,
     saveVideo, deleteVideo, moveVideo, unarchiveVideo,
     saveSample, deleteSample,
     saveGoal, deleteGoal,

@@ -1,12 +1,21 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Modal, { Field, Row, inputStyle } from '../components/Modal'
 import { ACCENTS, getAccent, pct, goalProgressColor, initials } from '../lib/utils'
 
-export default function Home({ profile, goals, videos, samples, topVideos, onSaveProfile, onSaveTopVideo, onDeleteTopVideo, isMobile }) {
+export default function Home({
+  profile, goals, videos, samples, topVideos,
+  onSaveProfile, onSaveTopVideo, onDeleteTopVideo,
+  onUploadAvatar, onUploadBanner,
+  isMobile
+}) {
   const [editingProfile, setEditingProfile] = useState(false)
   const [editingTopVideo, setEditingTopVideo] = useState(null)
   const [form, setForm] = useState({})
   const [tvForm, setTvForm] = useState({})
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [bannerUploading, setBannerUploading] = useState(false)
+  const avatarInputRef = useRef()
+  const bannerInputRef = useRef()
 
   const accent = getAccent(profile?.accent_color)
   const urgentCount = videos.filter(v => {
@@ -26,20 +35,91 @@ export default function Home({ profile, goals, videos, samples, topVideos, onSav
   }
   async function handleSaveTv() { await onSaveTopVideo(tvForm); setEditingTopVideo(null) }
 
+  async function handleAvatarChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setAvatarUploading(true)
+    await onUploadAvatar(file)
+    setAvatarUploading(false)
+  }
+
+  async function handleBannerChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setBannerUploading(true)
+    await onUploadBanner(file)
+    setBannerUploading(false)
+  }
+
   const pf = profile || {}
   const statsGridCols = isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))'
-  const pipelineGridCols = isMobile ? 'repeat(3, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'
-  const topVidsGridCols = isMobile ? 'repeat(1, minmax(0,1fr))' : 'repeat(3, minmax(0,1fr))'
+  const topVidsGridCols = isMobile ? '1fr' : 'repeat(3, minmax(0,1fr))'
 
   return (
-    <div style={{ ...styles.page, padding: isMobile ? '12px' : '14px' }}>
+    <div style={{ ...styles.page, padding: isMobile ? 12 : 14 }}>
+
       {/* Profile header */}
       <div style={styles.profileCard}>
-        <div style={{ ...styles.banner, background: accent.light }} />
+
+        {/* Banner */}
+        <div
+          style={{
+            ...styles.banner,
+            background: pf.banner_url ? 'none' : accent.light,
+            backgroundImage: pf.banner_url ? `url(${pf.banner_url})` : 'none',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            position: 'relative',
+          }}
+        >
+          {/* Hidden banner input */}
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleBannerChange}
+          />
+          <button
+            style={styles.changeBannerBtn}
+            onClick={() => bannerInputRef.current.click()}
+          >
+            {bannerUploading ? 'Uploading...' : pf.banner_url ? '✎ Change cover' : '+ Add cover photo'}
+          </button>
+        </div>
+
+        {/* Identity row */}
         <div style={{ ...styles.identity, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-          <div style={{ ...styles.avatar, background: accent.color }}>
-            {initials(pf.name)}
+
+          {/* Avatar */}
+          <div style={{ position: 'relative', flexShrink: 0, marginTop: -24 }}>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
+            {pf.avatar_url ? (
+              <img
+                src={pf.avatar_url}
+                alt="Profile"
+                style={styles.avatarImg}
+              />
+            ) : (
+              <div style={{ ...styles.avatar, background: accent.color }}>
+                {initials(pf.name)}
+              </div>
+            )}
+            <button
+              style={styles.avatarEditBtn}
+              onClick={() => avatarInputRef.current.click()}
+              title="Change profile photo"
+            >
+              {avatarUploading ? '...' : '✎'}
+            </button>
           </div>
+
           <div style={styles.profileText}>
             <div style={styles.profileName}>{pf.name || 'Your name'}</div>
             <div style={styles.profileHandle}>
@@ -47,6 +127,7 @@ export default function Home({ profile, goals, videos, samples, topVideos, onSav
             </div>
             {pf.niche && <div style={styles.profileNiche}>{pf.niche}</div>}
           </div>
+
           <button
             style={{ ...styles.editBtn, borderColor: accent.color, color: accent.color }}
             onClick={openProfileEdit}
@@ -121,7 +202,7 @@ export default function Home({ profile, goals, videos, samples, topVideos, onSav
         )}
       </div>
 
-      {/* Platform handles */}
+      {/* Platforms */}
       <div style={styles.sectionLabel}>Platforms</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
         <div style={styles.handleCard}>
@@ -152,7 +233,7 @@ export default function Home({ profile, goals, videos, samples, topVideos, onSav
 
       {/* Pipeline summary */}
       <div style={styles.sectionLabel}>Today's pipeline</div>
-      <div style={{ display: 'grid', gridTemplateColumns: pipelineGridCols, gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
         <div style={styles.statCard}><div style={styles.statLabel}>Due this week</div><div style={{ ...styles.statVal, color: '#D85A30' }}>{urgentCount}</div></div>
         <div style={styles.statCard}><div style={styles.statLabel}>Samples awaited</div><div style={{ ...styles.statVal, color: '#BA7517' }}>{awaitingCount}</div></div>
         <div style={styles.statCard}><div style={styles.statLabel}>Ideas queued</div><div style={{ ...styles.statVal, color: accent.color }}>{ideasCount}</div></div>
@@ -206,14 +287,27 @@ export default function Home({ profile, goals, videos, samples, topVideos, onSav
 const styles = {
   page: { maxWidth: 900 },
   profileCard: { background: '#fff', border: '0.5px solid rgba(0,0,0,0.1)', borderRadius: 14, overflow: 'hidden', marginBottom: 14 },
-  banner: { height: 60 },
-  identity: { padding: '0 14px 14px', display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -22 },
-  avatar: { width: 48, height: 48, borderRadius: '50%', border: '3px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: '500', color: '#fff', flexShrink: 0 },
-  profileText: { paddingTop: 24, flex: 1, minWidth: 0 },
+  banner: { height: 100, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: '8px 10px' },
+  changeBannerBtn: {
+    fontSize: 11, padding: '4px 10px', borderRadius: 8,
+    background: 'rgba(0,0,0,0.35)', color: '#fff',
+    border: 'none', cursor: 'pointer', backdropFilter: 'blur(4px)',
+  },
+  identity: { padding: '0 14px 14px', display: 'flex', alignItems: 'flex-end', gap: 12 },
+  avatar: { width: 52, height: 52, borderRadius: '50%', border: '3px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: '500', color: '#fff' },
+  avatarImg: { width: 52, height: 52, borderRadius: '50%', border: '3px solid #fff', objectFit: 'cover', display: 'block' },
+  avatarEditBtn: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 20, height: 20, borderRadius: '50%',
+    background: '#1a1a1a', color: '#fff',
+    border: '1.5px solid #fff', fontSize: 10,
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  profileText: { paddingTop: 16, flex: 1, minWidth: 0 },
   profileName: { fontSize: 16, fontWeight: '500' },
   profileHandle: { fontSize: 12, color: '#888', marginTop: 1 },
   profileNiche: { fontSize: 12, color: '#aaa', marginTop: 2 },
-  editBtn: { fontSize: 12, padding: '6px 14px', borderRadius: 8, border: '0.5px solid', background: 'none', cursor: 'pointer', flexShrink: 0, marginBottom: 4, whiteSpace: 'nowrap' },
+  editBtn: { fontSize: 12, padding: '6px 14px', borderRadius: 8, border: '0.5px solid', background: 'none', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', marginBottom: 4 },
   statCard: { background: '#f8f7f5', borderRadius: 10, padding: '12px 13px' },
   statLabel: { fontSize: 11, color: '#888', marginBottom: 3 },
   statVal: { fontSize: 20, fontWeight: '500' },
