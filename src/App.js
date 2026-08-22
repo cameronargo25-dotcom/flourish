@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import { useData } from './hooks/useData'
-import { getAccent } from './lib/utils'
+import { getAccent } from './lib/tokens'
 import Auth from './pages/Auth'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
@@ -55,9 +55,9 @@ export default function App() {
     saveTopVideo, deleteTopVideo,
   } = useData(session?.user?.id)
 
-  if (authLoading) return <div style={styles.center}>Loading...</div>
+  if (authLoading) return <div style={styles.center}><div style={styles.loadingDot}/></div>
   if (!session) return <Auth />
-  if (loading) return <div style={styles.center}>Loading your workspace...</div>
+  if (loading) return <div style={styles.center}><div style={styles.loadingDot}/></div>
 
   const accent = getAccent(profile?.accent_color)
 
@@ -91,10 +91,11 @@ export default function App() {
               onSaveTopVideo={saveTopVideo}
               onDeleteTopVideo={deleteTopVideo}
               isMobile={isMobile}
+              accentColor={accent.color}
             />
           )}
           {view === 'goals' && (
-            <Goals goals={goals} onSave={saveGoal} onDelete={deleteGoal} isMobile={isMobile} />
+            <Goals goals={goals} onSave={saveGoal} onDelete={deleteGoal} isMobile={isMobile} accentColor={accent.color} />
           )}
           {view === 'pipeline' && (
             <Pipeline
@@ -104,13 +105,14 @@ export default function App() {
               onMove={moveVideo}
               onUnarchive={unarchiveVideo}
               isMobile={isMobile}
+              accentColor={accent.color}
             />
           )}
           {view === 'calendar' && (
-            <Calendar videos={videos} onEditVideo={() => setView('pipeline')} isMobile={isMobile} />
+            <Calendar videos={videos} onEditVideo={() => setView('pipeline')} isMobile={isMobile} accentColor={accent.color} />
           )}
           {view === 'samples' && (
-            <Samples samples={samples} onSave={saveSample} onDelete={deleteSample} isMobile={isMobile} />
+            <Samples samples={samples} onSave={saveSample} onDelete={deleteSample} isMobile={isMobile} accentColor={accent.color} />
           )}
         </div>
       </div>
@@ -126,31 +128,48 @@ const styles = {
   app: {
     display: 'flex',
     minHeight: '100vh',
-    background: '#f8f7f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    background: '#F7F5F2',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
     fontSize: 14,
-    color: '#1a1a1a',
+    color: '#1C1917',
   },
   main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' },
   topbar: {
-    background: '#fff',
-    borderBottom: '0.5px solid rgba(0,0,0,0.1)',
-    padding: '0 16px',
-    height: 50,
+    background: '#FFFFFF',
+    borderBottom: '0.5px solid rgba(28,25,23,0.07)',
+    padding: '0 20px',
+    height: 52,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexShrink: 0,
+    boxShadow: '0 1px 0 rgba(28,25,23,0.04)',
   },
-  topbarTitle: { fontSize: 15, fontWeight: '500' },
+  topbarTitle: { fontSize: 15, fontWeight: '500', color: '#1C1917', letterSpacing: '-0.01em' },
   signOutBtn: {
-    fontSize: 12, padding: '5px 12px', borderRadius: 8,
-    border: '0.5px solid rgba(0,0,0,0.2)', background: 'none', color: '#666', cursor: 'pointer',
+    fontSize: 12,
+    padding: '5px 14px',
+    borderRadius: 20,
+    border: '0.5px solid rgba(28,25,23,0.15)',
+    background: 'none',
+    color: '#A8A29E',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'background 0.1s',
   },
   content: { flex: 1, overflowY: 'auto' },
   center: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    height: '100vh', fontSize: 14, color: '#888',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    background: '#F7F5F2',
+  },
+  loadingDot: {
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    background: '#EEEDFE',
+    animation: 'pulse 1.5s ease-in-out infinite',
   },
 }
